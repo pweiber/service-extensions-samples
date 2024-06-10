@@ -44,10 +44,12 @@ def make_json_request(
   json_list: list[str], address: tuple[str, int], key: str | None = None
 ) -> Iterator[ProcessingResponse]:
   """Make requests to a callout service with ProcessingRequest json data.
+
   Args:
     json_list: A list of json strings representing ProcessingRequest data.
     address: ip address of the callout server.
     key: Local filepath to a chain authenication certificate.
+
   Returns:
     An iterator containg each response.
   """
