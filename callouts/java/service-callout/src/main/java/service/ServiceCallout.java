@@ -43,9 +43,10 @@ import static utils.SslUtils.createSslContext;
 import static utils.SslUtils.readFileToBytes;
 
 /**
- * ServiceCallout provides a base class for handling HTTP request and response processing
- * in a gRPC-based service callout server. It processes incoming requests and modifies headers,
- * bodies, or immediate responses as per the service logic.
+ * ServiceCallout provides a customizeable, out of the box, service callout server.
+ * Takes in service callouts and performs header and body transformations.
+ * Bundled with an optional health check server.
+ * Can be set up to use ssl certificates.
  */
 public class ServiceCallout {
     private static final Logger logger = Logger.getLogger(ServiceCallout.class.getName());

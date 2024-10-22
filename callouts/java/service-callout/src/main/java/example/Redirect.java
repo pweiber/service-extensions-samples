@@ -26,9 +26,12 @@ import service.ServiceCalloutTools;
 /**
  * Example callout server that performs an HTTP 301 redirect.
  * <p>
- * This class demonstrates how to handle a request header callout and return an immediate 301 redirect response
- * with a specified "Location" header. It modifies the {@link ProcessingResponse} to include the redirect status
- * and relevant headers.
+ *  This class implements the `CalloutServer` interface and provides sample
+ *   responses for various callout interactions. It showcases how to modify request
+ *   headers using an immediate response.
+ *
+ *   On a request header callout we perform a redirect to '{http://service-extensions.com/redirect}'
+ *   with the status of '{301}' - MovedPermanently returning an ImmediateResponse
  */
 public class Redirect extends ServiceCallout {
 

@@ -43,8 +43,18 @@ import java.util.Optional;
 /**
  * Handles JWT authentication by extracting and validating JWT tokens from HTTP headers.
  * <p>
- * This class interacts with Envoy's external processing API to validate JWT tokens
- * and mutate HTTP headers based on the validation results.
+ * This class extracts the JWT token from the request headers, specifically looking for
+ * the 'Authorization' header and parsing out the token part.
+ * <p>
+ * Args:
+ * request_headers (service_pb2.HttpHeaders): The HTTP headers received in the request.
+ * <p>
+ * Returns:
+ * str: The extracted JWT token if found, otherwise None.
+ * <p>
+ * Example:
+ * Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6...
+ * -> Returns: eyJhbGciOiJIUzI1NiIsInR5cCI6...
  */
 public class JwtAuth extends ServiceCallout {
 
