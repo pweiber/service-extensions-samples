@@ -9,7 +9,7 @@ on:
       - callouts/java/**
       - docs/java/**
   pull_request:
-    branches: [ "main" ]
+    branches: [ "java-workflow-docs" ]
     paths:
       - callouts/java/**
 
