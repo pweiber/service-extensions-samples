@@ -4,7 +4,7 @@ name: Callouts test Java SDK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "java-workflow-docs" ]
     paths:
       - callouts/java/**
       - docs/java/**
@@ -37,6 +37,7 @@ jobs:
 
       - name: Install dependencies (Maven)
         run: mvn install --no-transfer-progress
+        working-directory: callouts/java
 
       - name: Run Tests (Maven)
         run: mvn test --no-transfer-progress
