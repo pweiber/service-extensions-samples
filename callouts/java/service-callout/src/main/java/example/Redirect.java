@@ -111,9 +111,10 @@ public class Redirect extends ServiceCallout {
         Redirect server = new Redirect.Builder()
                 .build();
 
+
+
         // Start the server and block until shutdown
         server.start();
-
         server.blockUntilShutdown();
     }
 }
