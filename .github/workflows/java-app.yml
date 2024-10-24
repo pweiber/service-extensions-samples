@@ -2,7 +2,7 @@ name: Callouts test Java SDK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "java-workflow-docs" ]
     paths:
       - callouts/java/**
       - docs/java/**

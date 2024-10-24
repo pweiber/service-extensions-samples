@@ -110,9 +110,6 @@ public class Redirect extends ServiceCallout {
         // Create a builder for ServiceCallout with custom configuration
         Redirect server = new Redirect.Builder()
                 .build();
-
-
-
         // Start the server and block until shutdown
         server.start();
         server.blockUntilShutdown();
