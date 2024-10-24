@@ -113,7 +113,6 @@ public class Redirect extends ServiceCallout {
 
         // Start the server and block until shutdown
         server.start();
-
         server.blockUntilShutdown();
     }
 }
