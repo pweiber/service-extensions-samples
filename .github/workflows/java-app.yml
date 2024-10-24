@@ -1,10 +1,8 @@
-# This workflow will install Java dependencies, run tests and lint with a single version of Java
-
 name: Callouts test Java SDK
 
 on:
   push:
-    branches: [ "java-workflow-docs" ]
+    branches: [ "main" ]
     paths:
       - callouts/java/**
       - docs/java/**
@@ -29,20 +27,22 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: maven
 
       - name: Install dependencies (Maven)
-        working-directory: ../callouts/java
+        working-directory: ./callouts/java
         run: mvn install --no-transfer-progress
 
       - name: Run Tests (Maven)
+        working-directory: ./callouts/java
         run: mvn test --no-transfer-progress
 
       - name: Generate Javadocs
+        working-directory: ./callouts/java
         run: mvn javadoc:javadoc
 
       - name: Deploy to GitHub Pages
@@ -51,5 +51,5 @@ jobs:
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: target/site/apidocs
+          publish_dir: callouts/java/target/site/apidocs
           force_orphan: true
