@@ -42,7 +42,7 @@ jobs:
         run: mvn test --no-transfer-progress
 
       - name: Generate Javadocs
-        working-directory: callouts/java/
+        working-directory: callouts/java/service-callout/
         run: mvn javadoc:javadoc
 
       - name: Deploy to GitHub Pages
