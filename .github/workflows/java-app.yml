@@ -34,7 +34,7 @@ jobs:
           cache: maven
 
       - name: Install dependencies (Maven)
-        working-directory: ./callouts/java
+        working-directory: callouts/java/service-callout/
         run: mvn install --no-transfer-progress
 
       - name: Run Tests (Maven)
