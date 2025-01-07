@@ -16,6 +16,7 @@
 
 load("@proxy_wasm_cpp_host//bazel:wasm.bzl", "wasm_rust_binary")
 load("@proxy_wasm_cpp_sdk//bazel:defs.bzl", "proxy_wasm_cc_binary")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary")
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 def proxy_wasm_plugin_rust(**kwargs):
@@ -32,6 +33,32 @@ def proxy_wasm_plugin_rust(**kwargs):
 def proxy_wasm_plugin_cpp(copts = [], **kwargs):
     proxy_wasm_cc_binary(
         copts = copts + ["-Werror=return-type"],
+        **kwargs
+    )
+
+def proxy_wasm_plugin_go(
+        name,
+        srcs,
+        deps = [],
+        visibility = None,
+        # Optionally pass linkopts, etc.
+        **kwargs):
+    """
+    Builds a Wasm plugin from Go sources using proxy-wasm-go-sdk.
+    """
+    go_binary(
+        name = name,
+        srcs = srcs,
+        deps = deps,
+        # Force WASI/WASIP1 cross-compilation to produce .wasm
+        goos = "wasip1",
+        goarch = "wasm",
+        # Provide buildmode=c-shared so it matches the "env GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared" usage.
+        gc_linkopts = [
+            "-buildmode=c-shared",
+        ],
+        visibility = visibility,
+        # Forward extra kwargs if needed:
         **kwargs
     )
 

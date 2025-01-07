@@ -197,3 +197,50 @@ crates_repository(
 load("@crate_index//:defs.bzl", "crate_repositories")
 
 crate_repositories()
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+###############################################################################
+# 1) rules_go
+###############################################################################
+http_archive(
+    name = "io_bazel_rules_go",
+    sha256 = "0936c9bc3c4321ee372cb8f66dd972d368cb940ed01a9ba9fd7debcf0093f09b",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.51.0/rules_go-v0.51.0.zip",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.51.0/rules_go-v0.51.0.zip",
+    ],
+)
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+
+go_rules_dependencies()
+go_register_toolchains(version = "1.24rc1")
+
+###############################################################################
+# 2) bazel_gazelle
+###############################################################################
+
+http_archive(
+    name = "bazel_gazelle",
+    integrity = "sha256-12v3pg/YsFBEQJDfooN6Tq+YKeEWVhjuNdzspcvfWNU=",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.37.0/bazel-gazelle-v0.37.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.37.0/bazel-gazelle-v0.37.0.tar.gz",
+    ],
+)
+
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
+
+gazelle_dependencies(go_repository_default_config = "//:WORKSPACE")
+
+###############################################################################
+# 3) Use go_repository for proxy-wasm-go-sdk
+###############################################################################
+
+go_repository(
+    name = "com_github_proxy_wasm_proxy_wasm_go_sdk",
+    importpath = "github.com/proxy-wasm/proxy-wasm-go-sdk",
+    version = "v0.0.0-20241219182957-23e5db51ea08",
+    sum = "h1:UiqUl6PLcIW4S93FkmbK9gK2r2veY0MI6nKEXMk/9Ws=",
+)
