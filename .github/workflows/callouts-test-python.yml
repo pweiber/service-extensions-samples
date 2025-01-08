@@ -5,7 +5,7 @@ name: Callouts test Python SDK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "java-sdk-fixes-2" ]
     paths:
     - callouts/python/**
     - docs/python/**
@@ -55,7 +55,7 @@ jobs:
         sphinx-build -E docs/python docs/python/_build
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/java-sdk-fixes-2' }}
       with:
         publish_branch: gh-pages
         github_token: ${{ secrets.GITHUB_TOKEN }}
