@@ -207,4 +207,3 @@ This command will generate Javadoc for your project, including dependencies, and
 directory configured inside `reportOutputDirectory` in the `pom.xml`.
 
 You may open the file `target/docs/apidocs/index.html` in order to see the documentation.
-
