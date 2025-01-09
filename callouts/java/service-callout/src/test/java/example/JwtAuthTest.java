@@ -28,7 +28,6 @@ import io.grpc.StatusRuntimeException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import service.ServiceCallout;
 
 import java.io.File;
@@ -51,10 +50,10 @@ public class JwtAuthTest {
 
     @Before
     public void setUp() throws GeneralSecurityException, IOException {
-        server = Mockito.spy(new JwtAuth.Builder()
+        server = new JwtAuth.Builder()
                 .setPort(8443)
                 .setHealthCheckPort(8000)
-                .build());
+                .build();
 
         server.start();
     }
