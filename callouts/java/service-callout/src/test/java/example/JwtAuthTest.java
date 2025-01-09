@@ -53,6 +53,8 @@ public class JwtAuthTest {
     public void setUp() throws GeneralSecurityException, IOException {
         server = Mockito.spy(new JwtAuth.Builder()
                 .build());
+
+        server.start();
     }
 
     @After

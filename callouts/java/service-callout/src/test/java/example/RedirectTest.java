@@ -31,6 +31,7 @@ import org.junit.Test;
 import service.ServiceCallout;
 import service.ServiceCalloutTools;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 
@@ -39,9 +40,11 @@ public class RedirectTest {
     private Redirect server;
 
     @Before
-    public void setUp(){
+    public void setUp() throws IOException {
         server = new Redirect.Builder()
                 .build();
+
+        server.start();
     }
 
     @After
