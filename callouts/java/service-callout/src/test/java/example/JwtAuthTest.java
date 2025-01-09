@@ -52,6 +52,8 @@ public class JwtAuthTest {
     @Before
     public void setUp() throws GeneralSecurityException, IOException {
         server = Mockito.spy(new JwtAuth.Builder()
+                .setPort(8443)
+                .setHealthCheckPort(8000)
                 .build());
 
         server.start();

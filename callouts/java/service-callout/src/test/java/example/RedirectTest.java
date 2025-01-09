@@ -42,6 +42,8 @@ public class RedirectTest {
     @Before
     public void setUp() throws IOException {
         server = new Redirect.Builder()
+                .setPort(8443)
+                .setHealthCheckPort(8000)
                 .build();
 
         server.start();

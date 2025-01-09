@@ -36,6 +36,8 @@ public class AddBodyTest {
     @Before
     public void setUp() throws IOException {
         server = new AddBody.Builder()
+                .setPort(8443)
+                .setHealthCheckPort(8000)
                 .build();
 
         server.start();
