@@ -82,10 +82,7 @@ pub fn add_header_mutation(
                 keep_empty_value: false,
             })
             .collect(),
-        remove_headers: headers_to_remove
-            .into_iter()
-            .map(String::from)
-            .collect(),
+        remove_headers: headers_to_remove,
     };
 
     let common_response = CommonResponse {
