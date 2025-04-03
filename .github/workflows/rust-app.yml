@@ -26,6 +26,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: 1.32.2
+
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -37,6 +41,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
+
+      - name: Generate protodefs with buf
+        working-directory: callouts/rust/extproc/
+        run: |
+          mkdir -p proto
+          buf export buf.build/envoyproxy/envoy -o proto
 
       - name: Cache Rust dependencies
         uses: actions/cache@v3
