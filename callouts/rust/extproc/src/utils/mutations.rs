@@ -68,28 +68,25 @@ pub fn add_header_mutation(
     is_request: bool,
     append_action: Option<i32>,
 ) -> ProcessingResponse {
-    let mut header_mutation = HeaderMutation::default();
-
-    // Add headers
-    header_mutation.set_headers = headers_to_add
-        .into_iter()
-        .map(|(key, value)| HeaderValueOption {
-            header: Some(HeaderValue {
-                key: key.to_string(),
-                raw_value: value.as_bytes().to_vec(),
-                ..Default::default()
-            }),
-            append: None,  // Keep for backwards compatibility
-            append_action: append_action.unwrap_or(0),  // Default to APPEND_NONE (0)
-            keep_empty_value: false,
-        })
-        .collect();
-
-    // Remove headers
-    header_mutation.remove_headers = headers_to_remove
-        .into_iter()
-        .map(String::from)
-        .collect();
+    let header_mutation = HeaderMutation {
+        set_headers: headers_to_add
+            .into_iter()
+            .map(|(key, value)| HeaderValueOption {
+                header: Some(HeaderValue {
+                    key: key.to_string(),
+                    raw_value: value.as_bytes().to_vec(),
+                    ..Default::default()
+                }),
+                append: None,  // Keep for backwards compatibility
+                append_action: append_action.unwrap_or(0),  // Default to APPEND_NONE (0)
+                keep_empty_value: false,
+            })
+            .collect(),
+        remove_headers: headers_to_remove
+            .into_iter()
+            .map(String::from)
+            .collect(),
+    };
 
     let common_response = CommonResponse {
         header_mutation: Some(header_mutation),
@@ -213,22 +210,22 @@ pub fn add_immediate_response(
     body: Option<Vec<u8>>,
     append_action: Option<i32>,
 ) -> ProcessingResponse {
-    let mut header_mutation = HeaderMutation::default();
-
-    // Add headers
-    header_mutation.set_headers = headers
-        .into_iter()
-        .map(|(key, value)| HeaderValueOption {
-            header: Some(HeaderValue {
-                key,
-                raw_value: value.into_bytes(),
-                ..Default::default()
-            }),
-            append: None, // Keep for backwards compatibility
-            append_action: append_action.unwrap_or(0),  // Default to APPEND_NONE (0)
-            keep_empty_value: false,
-        })
-        .collect();
+    let header_mutation = HeaderMutation {
+        set_headers: headers
+            .into_iter()
+            .map(|(key, value)| HeaderValueOption {
+                header: Some(HeaderValue {
+                    key,
+                    raw_value: value.into_bytes(),
+                    ..Default::default()
+                }),
+                append: None, // Keep for backwards compatibility
+                append_action: append_action.unwrap_or(0),  // Default to APPEND_NONE (0)
+                keep_empty_value: false,
+            })
+            .collect(),
+        remove_headers: Vec::new(),
+    };
 
     let immediate_response = ImmediateResponse {
         status: Some(HttpStatus {
