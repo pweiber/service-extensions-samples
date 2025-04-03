@@ -6,7 +6,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Downloading Envoy protos...");
         std::fs::create_dir_all("proto")?;
         Command::new("buf")
-            .args(&["export", "buf.build/envoyproxy/envoy", "-o", "proto"])
+            .args(["export", "buf.build/envoyproxy/envoy", "-o", "proto"])
             .status()?;
     }
 
