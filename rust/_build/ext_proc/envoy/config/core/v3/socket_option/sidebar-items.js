@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["SocketState","Value"],"mod":["socket_type"],"struct":["SocketType"]};

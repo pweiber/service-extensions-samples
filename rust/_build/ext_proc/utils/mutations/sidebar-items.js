@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["add_body_clear_mutation","add_body_string_mutation","add_header_mutation","add_immediate_response","add_redirect_response"]};
