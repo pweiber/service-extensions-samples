@@ -2,7 +2,7 @@ name: Deploy Common Documentation Files
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "rust-sdk-test" ]
     paths:
       - docs/google-cloud.png
       - docs/style.css
