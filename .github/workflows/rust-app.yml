@@ -82,7 +82,7 @@ jobs:
       - name: Copy Documentation to Build Directory
         run: |
           mkdir -p docs/rust/_build
-          cp -r callouts/rust/extproc/target/doc/* docs/rust/_build/
+          cp -r callouts/rust/target/doc/* docs/rust/_build/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
