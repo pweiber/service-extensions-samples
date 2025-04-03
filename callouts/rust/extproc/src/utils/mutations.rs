@@ -30,19 +30,18 @@
 //! These utilities abstract away the complexity of constructing the correct Envoy protobuf message
 //! structures, making it easier to implement common HTTP traffic modifications.
 
+use crate::envoy::r#type::v3::HttpStatus;
+use crate::envoy::service::ext_proc::v3::processing_response::Response;
+use crate::envoy::service::ext_proc::v3::{
+    body_mutation, processing_response, BodyMutation, BodyResponse, ImmediateResponse,
+};
 use crate::envoy::{
     config::core::v3::{HeaderValue, HeaderValueOption},
     service::ext_proc::v3::{
-        ProcessingResponse,
-        HeadersResponse,
-        CommonResponse,
-        HeaderMutation,
-        processing_response::Response as ProcessingResponseType,
+        processing_response::Response as ProcessingResponseType, CommonResponse, HeaderMutation,
+        HeadersResponse, ProcessingResponse,
     },
 };
-use crate::envoy::r#type::v3::HttpStatus;
-use crate::envoy::service::ext_proc::v3::{body_mutation, processing_response, BodyMutation, BodyResponse, ImmediateResponse};
-use crate::envoy::service::ext_proc::v3::processing_response::Response;
 
 /// Creates a processing response that adds and/or removes HTTP headers.
 ///
@@ -77,8 +76,8 @@ pub fn add_header_mutation(
                     raw_value: value.as_bytes().to_vec(),
                     ..Default::default()
                 }),
-                append: None,  // Keep for backwards compatibility
-                append_action: append_action.unwrap_or(0),  // Default to APPEND_NONE (0)
+                append: None, // Keep for backwards compatibility
+                append_action: append_action.unwrap_or(0), // Default to APPEND_NONE (0)
                 keep_empty_value: false,
             })
             .collect(),
@@ -124,7 +123,11 @@ pub fn add_header_mutation(
 /// # Returns
 ///
 /// A `ProcessingResponse` that replaces the body with the specified string
-pub fn add_body_string_mutation(body: String, is_request: bool, clear_route_cache: bool) -> ProcessingResponse {
+pub fn add_body_string_mutation(
+    body: String,
+    is_request: bool,
+    clear_route_cache: bool,
+) -> ProcessingResponse {
     let body_mutation = BodyMutation {
         mutation: Some(body_mutation::Mutation::Body(body.into_bytes())),
     };
@@ -217,7 +220,7 @@ pub fn add_immediate_response(
                     ..Default::default()
                 }),
                 append: None, // Keep for backwards compatibility
-                append_action: append_action.unwrap_or(0),  // Default to APPEND_NONE (0)
+                append_action: append_action.unwrap_or(0), // Default to APPEND_NONE (0)
                 keep_empty_value: false,
             })
             .collect(),
@@ -299,9 +302,16 @@ mod tests {
         let response = add_header_mutation(headers_to_add, headers_to_remove, true, true, None);
 
         // Verify request headers response
-        if let Some(ProcessingResponseVariant::RequestHeaders(headers_response)) = response.response {
+        if let Some(ProcessingResponseVariant::RequestHeaders(headers_response)) = response.response
+        {
             // Use as_ref() to borrow the contents instead of taking ownership
-            let header_mutation = headers_response.response.as_ref().unwrap().header_mutation.as_ref().unwrap();
+            let header_mutation = headers_response
+                .response
+                .as_ref()
+                .unwrap()
+                .header_mutation
+                .as_ref()
+                .unwrap();
 
             // Check added headers
             assert_eq!(header_mutation.set_headers.len(), 2);
@@ -310,7 +320,13 @@ mod tests {
                 "X-Test-Header"
             );
             assert_eq!(
-                String::from_utf8_lossy(&header_mutation.set_headers[0].header.as_ref().unwrap().raw_value),
+                String::from_utf8_lossy(
+                    &header_mutation.set_headers[0]
+                        .header
+                        .as_ref()
+                        .unwrap()
+                        .raw_value
+                ),
                 "test-value"
             );
 
@@ -319,7 +335,13 @@ mod tests {
             assert_eq!(header_mutation.remove_headers[0], "X-Remove-Me");
 
             // Check route cache clearing
-            assert!(headers_response.response.as_ref().unwrap().clear_route_cache);
+            assert!(
+                headers_response
+                    .response
+                    .as_ref()
+                    .unwrap()
+                    .clear_route_cache
+            );
         } else {
             panic!("Expected RequestHeaders response");
         }
@@ -332,9 +354,7 @@ mod tests {
     #[test]
     fn test_add_header_mutation_response() {
         // Test adding headers to a response
-        let headers_to_add = vec![
-            ("X-Test-Header".to_string(), "test-value".to_string()),
-        ];
+        let headers_to_add = vec![("X-Test-Header".to_string(), "test-value".to_string())];
         let headers_to_remove = vec![];
 
         let response = add_header_mutation(headers_to_add, headers_to_remove, false, false, None);
@@ -360,7 +380,13 @@ mod tests {
         // Verify request body response
         if let Some(ProcessingResponseVariant::RequestBody(body_response)) = response.response {
             // Use as_ref() to borrow the contents
-            let body_mutation = body_response.response.as_ref().unwrap().body_mutation.as_ref().unwrap();
+            let body_mutation = body_response
+                .response
+                .as_ref()
+                .unwrap()
+                .body_mutation
+                .as_ref()
+                .unwrap();
 
             if let Some(body_mutation::Mutation::Body(modified_body)) = &body_mutation.mutation {
                 assert_eq!(String::from_utf8_lossy(modified_body), body);
@@ -386,7 +412,13 @@ mod tests {
         // Verify response body response
         if let Some(ProcessingResponseVariant::ResponseBody(body_response)) = response.response {
             // Use as_ref() to borrow the contents
-            let body_mutation = body_response.response.as_ref().unwrap().body_mutation.as_ref().unwrap();
+            let body_mutation = body_response
+                .response
+                .as_ref()
+                .unwrap()
+                .body_mutation
+                .as_ref()
+                .unwrap();
 
             if let Some(body_mutation::Mutation::Body(modified_body)) = &body_mutation.mutation {
                 assert_eq!(String::from_utf8_lossy(modified_body), body);
@@ -413,7 +445,13 @@ mod tests {
         // Verify request body response with clear body
         if let Some(ProcessingResponseVariant::RequestBody(body_response)) = response.response {
             // Use as_ref() to borrow the contents
-            let body_mutation = body_response.response.as_ref().unwrap().body_mutation.as_ref().unwrap();
+            let body_mutation = body_response
+                .response
+                .as_ref()
+                .unwrap()
+                .body_mutation
+                .as_ref()
+                .unwrap();
 
             if let Some(body_mutation::Mutation::ClearBody(clear)) = body_mutation.mutation {
                 assert!(clear);
@@ -438,7 +476,13 @@ mod tests {
         // Verify response body response with clear body
         if let Some(ProcessingResponseVariant::ResponseBody(body_response)) = response.response {
             // Use as_ref() to borrow the contents
-            let body_mutation = body_response.response.as_ref().unwrap().body_mutation.as_ref().unwrap();
+            let body_mutation = body_response
+                .response
+                .as_ref()
+                .unwrap()
+                .body_mutation
+                .as_ref()
+                .unwrap();
 
             if let Some(body_mutation::Mutation::ClearBody(clear)) = body_mutation.mutation {
                 assert!(clear);
@@ -472,7 +516,9 @@ mod tests {
         let response = add_immediate_response(status_code, headers, body, None);
 
         // Verify immediate response
-        if let Some(ProcessingResponseVariant::ImmediateResponse(immediate_response)) = response.response {
+        if let Some(ProcessingResponseVariant::ImmediateResponse(immediate_response)) =
+            response.response
+        {
             // Check status code
             assert_eq!(immediate_response.status.as_ref().unwrap().code, 403);
 
@@ -481,7 +527,10 @@ mod tests {
             assert_eq!(header_mutation.set_headers.len(), 2);
 
             // Check body
-            assert_eq!(String::from_utf8_lossy(&immediate_response.body), "Access denied");
+            assert_eq!(
+                String::from_utf8_lossy(&immediate_response.body),
+                "Access denied"
+            );
         } else {
             panic!("Expected ImmediateResponse");
         }
@@ -502,7 +551,9 @@ mod tests {
         let response = add_redirect_response(status_code, location.to_string(), None);
 
         // Verify immediate response with redirect
-        if let Some(ProcessingResponseVariant::ImmediateResponse(immediate_response)) = response.response {
+        if let Some(ProcessingResponseVariant::ImmediateResponse(immediate_response)) =
+            response.response
+        {
             // Check status code
             assert_eq!(immediate_response.status.as_ref().unwrap().code, 301);
 
@@ -514,10 +565,7 @@ mod tests {
                 if let Some(h) = &header.header {
                     if h.key == "Location" {
                         found_location = true;
-                        assert_eq!(
-                            String::from_utf8_lossy(&h.raw_value),
-                            location
-                        );
+                        assert_eq!(String::from_utf8_lossy(&h.raw_value), location);
                     }
                 }
             }
@@ -541,10 +589,16 @@ mod tests {
         let redirect_status_codes = vec![301, 302, 303, 307, 308];
 
         for status_code in redirect_status_codes {
-            let response = add_redirect_response(status_code, "https://example.com".to_string(), None);
+            let response =
+                add_redirect_response(status_code, "https://example.com".to_string(), None);
 
-            if let Some(ProcessingResponseVariant::ImmediateResponse(immediate_response)) = response.response {
-                assert_eq!(immediate_response.status.as_ref().unwrap().code, status_code as i32);
+            if let Some(ProcessingResponseVariant::ImmediateResponse(immediate_response)) =
+                response.response
+            {
+                assert_eq!(
+                    immediate_response.status.as_ref().unwrap().code,
+                    status_code as i32
+                );
             } else {
                 panic!("Expected ImmediateResponse");
             }
