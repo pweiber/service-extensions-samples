@@ -1,0 +1,12 @@
+{
+  "cpu": {
+    "average": 146.467,
+    "maximum": 150.32,
+    "minimum": 0.69
+  },
+  "memory": {
+    "average": 8.78872,
+    "maximum": 9.27,
+    "minimum": 6.56
+  }
+}

@@ -1,0 +1,16 @@
+# Modified Dockerfile using public base images for local testing
+FROM golang:1.23-bookworm AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN GOOS=linux GOARCH=amd64 go build -o main ./extproc/cmd/example/main.go
+
+FROM debian:bookworm-slim
+WORKDIR /root/
+COPY --from=builder /app/main .
+COPY --from=builder /app/extproc/ssl_creds ./extproc/ssl_creds
+ENV EXAMPLE_TYPE=jwt_auth
+EXPOSE 443 8080 80
+CMD ["./main"]

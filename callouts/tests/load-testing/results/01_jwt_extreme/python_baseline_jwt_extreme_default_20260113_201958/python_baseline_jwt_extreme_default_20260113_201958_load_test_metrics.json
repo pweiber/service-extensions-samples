@@ -1,0 +1,30 @@
+{
+  "response_times": {
+    "fastest": 30.237487,
+    "slowest": 1920.296223,
+    "average": 1716.577636,
+    "p50": 1714.26124,
+    "p75": 1737.445558,
+    "p90": 1761.619612,
+    "p95": 1779.438048,
+    "p99": 1830.626168
+  },
+  "requests": {
+    "total": 699003,
+    "ok": 697004,
+    "errors": 1999,
+    "error_rate_percent": 0.28597874401111295,
+    "success_rate_percent": 99.71402125598888
+  },
+  "throughput": {
+    "rps": 1164.9992135751143,
+    "total_time_ms": 600002.980135
+  },
+  "error_distribution": {
+    "Canceled": 1999,
+    "OK": 697004
+  },
+  "errors_detail": {
+    "rpc error: code = Canceled desc = grpc: the client connection is closing": 1999
+  }
+}

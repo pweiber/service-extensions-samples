@@ -1,0 +1,35 @@
+# Python Multiprocessing JWT Callout Server
+# JWT RS256 validation with multiprocessing - CPU-intensive work
+
+# Build the proto libraries from the envoy git repo using buf.
+FROM bufbuild/buf as BUF
+RUN apk add git
+COPY ./buf.gen.yaml ./buf.gen.yaml
+RUN buf -v generate https://github.com/envoyproxy/envoy.git#subdir=api --path envoy/service/ext_proc/v3/external_processor.proto --include-imports
+
+# Build the callout service.
+FROM launcher.gcr.io/google/debian12 as service-callout
+RUN apt-get update && apt-get upgrade -y && apt-get autoremove -y
+RUN apt-get install -y python3-pip --no-install-recommends --no-install-suggests
+
+COPY ./requirements.txt .
+COPY ./extproc/example/jwt_auth/additional-requirements.txt ./jwt-requirements.txt
+RUN pip install -r requirements.txt -r jwt-requirements.txt --break-system-packages --root-user-action=ignore
+
+WORKDIR /home/callouts/python
+
+# Copy over the protobuf files from the buf build.
+COPY --from=BUF ./protodef .
+
+# Setup the service callout files.
+COPY ./extproc/service ./extproc/service
+COPY ./extproc/ssl_creds ./extproc/ssl_creds
+
+# Copy JWT auth example
+COPY ./extproc/example/jwt_auth ./extproc/example/jwt_auth
+
+EXPOSE 443 80 8080
+
+ENV run_module=extproc.example.jwt_auth.service_callout_example
+
+ENTRYPOINT /usr/bin/python3 -um ${run_module} "$@"

@@ -1,0 +1,477 @@
+{
+  "test_modes": {
+    "quick": {
+      "duration": "10s",
+      "vus": 10,
+      "warmup": "0s",
+      "description": "Quick smoke test"
+    },
+    "standard": {
+      "duration": "30s",
+      "vus": 50,
+      "warmup": "5s",
+      "description": "Standard load test with warmup"
+    },
+    "stress": {
+      "duration": "60s",
+      "vus": 100,
+      "warmup": "10s",
+      "description": "Stress test with warmup"
+    },
+    "extreme": {
+      "duration": "600s",
+      "vus": 2000,
+      "warmup": "60s",
+      "description": "Extreme load test (10 min, 2000 VUs)"
+    }
+  },
+  "service_types": {
+    "rust_basic": {
+      "image": "rust-basic-callout:local",
+      "description": "Rust SDK basic header manipulation",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "rust_jwt": {
+      "image": "rust-jwt-callout:local",
+      "description": "Rust SDK with JWT RS256 validation",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "go_basic": {
+      "image": "go-basic-callout:local",
+      "description": "Go SDK basic header manipulation",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "env": {
+        "EXAMPLE_TYPE": "add_header"
+      },
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "go_jwt": {
+      "image": "go-jwt-callout:local",
+      "description": "Go SDK with JWT RS256 validation",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "env": {
+        "EXAMPLE_TYPE": "jwt_auth"
+      },
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "java_basic": {
+      "image": "java-basic-callout:local",
+      "description": "Java SDK basic header manipulation (platform threads)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "java_jwt": {
+      "image": "java-jwt-callout:local",
+      "description": "Java SDK with JWT RS256 validation",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "java_vt_basic": {
+      "image": "java-vt-basic-callout:local",
+      "description": "Java 21 SDK basic (virtual threads)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "java_vt_jwt": {
+      "image": "java-vt-jwt-callout:local",
+      "description": "Java 21 SDK with JWT RS256 (virtual threads)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "cpp_basic": {
+      "image": "cpp-basic-callout:local",
+      "description": "C++ SDK basic header manipulation (sync API)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "cpp_jwt": {
+      "image": "cpp-jwt-callout:local",
+      "description": "C++ SDK with JWT RS256 (sync API)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "cpp_async_basic": {
+      "image": "cpp-async-basic-callout:local",
+      "description": "C++ SDK basic (async CompletionQueue API)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "cpp_async_jwt": {
+      "image": "cpp-async-jwt-callout:local",
+      "description": "C++ SDK with JWT RS256 (async API)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "python_base_basic": {
+      "image": "python-base-basic-callout:local",
+      "description": "Python baseline basic (2 threads)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "python_base_jwt": {
+      "image": "python-base-jwt-callout:local",
+      "description": "Python baseline JWT RS256 (2 threads)",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "python_8t_basic": {
+      "image": "python-8t-basic-callout:local",
+      "description": "Python 8 threads basic",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "python_8t_jwt": {
+      "image": "python-8t-jwt-callout:local",
+      "description": "Python 8 threads JWT RS256",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "python_mp_basic": {
+      "image": "python-mp-basic-callout:local",
+      "description": "Python multiprocessing basic",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "some-header", "value": "some-value"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    },
+    "python_mp_jwt": {
+      "image": "python-mp-jwt-callout:local",
+      "description": "Python multiprocessing JWT RS256",
+      "port": 8080,
+      "container_port": 8080,
+      "health_check_port": 80,
+      "health_check_container_port": 80,
+      "resources": {
+        "cpu_limit": "4.0",
+        "memory_limit": "2g",
+        "cpu_reservation": "2.0",
+        "memory_reservation": "1g"
+      },
+      "request_data": {
+        "type": "request_headers",
+        "headers": {
+          "headers": [
+            {"key": ":path", "value": "/"},
+            {"key": "authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTcxMjE3MzQ2MSwiZXhwIjoyMDc1NjU4MjYxfQ.Vv-Lwn1z8BbVBGm-T1EKxv6T3XKCeRlvRrRmdu8USFdZUoSBK_aThzwzM2T8hlpReYsX9YFdJ3hMfq6OZTfHvfPLXvAt7iSKa03ZoPQzU8bRGzYy8xrb0ZQfrejGfHS5iHukzA8vtI2UAJ_9wFQiY5_VGHOBv9116efslbg-_gItJ2avJb0A0yr5uUwmE336rYEwgm4DzzfnTqPt8kcJwkONUsjEH__mePrva1qDT4qtfTPQpGa35TW8n9yZqse3h1w3xyxUfJd3BlDmoz6pQp2CvZkhdQpkWA1bnwpdqSDC7bHk4tYX6K5Q19na-2ff7gkmHZHJr0G9e_vAhQiE5w"}
+          ]
+        },
+        "end_of_stream": true
+      }
+    }
+  },
+  "default_settings": {
+    "service_type": "rust_basic",
+    "test_mode": "standard",
+    "scenario": "default",
+    "collect_metrics": true,
+    "wait_timeout": 60,
+    "results_dir": "./results",
+    "export_formats": ["json"]
+  }
+}

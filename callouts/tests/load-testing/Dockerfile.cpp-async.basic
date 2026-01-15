@@ -1,0 +1,63 @@
+# C++ Async Basic Callout Server (gRPC async API)
+# Multi-stage build: Build with Bazel, run with minimal runtime
+
+# Stage 1: Build the C++ application using Bazel
+FROM debian:12-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    openssl \
+    git \
+    python3 \
+    python3-distutils \
+    clang \
+    g++ \
+    libstdc++6 \
+    libssl-dev \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Bazelisk
+RUN wget -q https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-amd64 \
+    -O /usr/local/bin/bazelisk && chmod +x /usr/local/bin/bazelisk && \
+    ln -s /usr/local/bin/bazelisk /usr/local/bin/bazel
+
+WORKDIR /app
+
+# Copy the cpp-async source
+COPY . /app
+
+# Build the async basic server with Bazel
+RUN bazel build --config=clang --cxxopt='-std=c++17' //examples/basic:async_basic_callout_server
+
+# Copy the built binary to a known location
+RUN mkdir -p /app/build_output && \
+    cp bazel-bin/examples/basic/async_basic_callout_server /app/build_output/
+
+# Stage 2: Runtime image
+FROM debian:12-slim
+
+# Install minimal runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the compiled binary from builder
+COPY --from=builder /app/build_output/async_basic_callout_server /app/
+
+# Copy SSL credentials
+COPY --from=builder /app/ssl_creds /app/ssl_creds
+
+WORKDIR /app
+
+# Expose ports: 443 (TLS), 8080 (plaintext), 80 (health check)
+EXPOSE 443 8080 80
+
+# Health check
+HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -sf http://localhost:80/ || exit 1
+
+# Run the async server
+CMD ["./async_basic_callout_server"]
