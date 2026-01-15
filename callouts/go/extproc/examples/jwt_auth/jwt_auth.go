@@ -59,8 +59,13 @@ func (s *ExampleCalloutService) LoadPublicKey(path string) {
 // extractJWTToken extracts the JWT token from the request headers.
 func extractJWTToken(headers *extproc.HttpHeaders) (string, error) {
 	for _, header := range headers.Headers.Headers {
-		if header.Key == "Authorization" {
-			return string(header.RawValue), nil
+		// Use case-insensitive comparison since gRPC/HTTP2 normalizes headers to lowercase
+		if strings.EqualFold(header.Key, "authorization") {
+			// Try RawValue first, fall back to Value
+			if len(header.RawValue) > 0 {
+				return string(header.RawValue), nil
+			}
+			return header.Value, nil
 		}
 	}
 	return "", fmt.Errorf("no Authorization header found")

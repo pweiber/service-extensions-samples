@@ -1,0 +1,4 @@
+version: v1
+plugins:
+  - plugin: buf.build/protocolbuffers/python:v26.1 # Using v26.1 as in your original file
+    out: . # We'll override this with --output -

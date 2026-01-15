@@ -1,0 +1,13 @@
+# Bazel build artifacts (symlinks that cause issues on Windows)
+bazel-*
+
+# IDE files
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Documentation artifacts
+Doxyfile

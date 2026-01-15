@@ -127,7 +127,14 @@ public class JwtAuth extends ServiceCallout {
 
         Optional<String> jwtToken = requestHeaders.getHeaders().getHeadersList().stream()
                 .filter(header -> "Authorization".equalsIgnoreCase(header.getKey()))
-                .map(header -> new String(header.getRawValue().toByteArray(), StandardCharsets.UTF_8))
+                .map(header -> {
+                    // Try raw_value first, fall back to value field
+                    byte[] rawValue = header.getRawValue().toByteArray();
+                    if (rawValue != null && rawValue.length > 0) {
+                        return new String(rawValue, StandardCharsets.UTF_8);
+                    }
+                    return header.getValue();
+                })
                 .findFirst()
                 .map(authHeader -> {
                     String[] parts = authHeader.split(" ");
