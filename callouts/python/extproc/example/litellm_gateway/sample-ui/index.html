@@ -354,41 +354,34 @@
       return headers;
     }
 
-    async function fetchModels() {
+    // Models are defined here rather than fetched from /v1/models — the Python
+    // callout routes directly to Vertex AI and does not run a LiteLLM server.
+    // Keep this list in sync with the ALLOWED_MODELS env var on the callout.
+    var AVAILABLE_MODELS = [
+      'google/gemini-2.5-flash',
+      'google/gemini-2.5-pro',
+      'meta/llama-3.3-70b',
+      'mistralai/mistral-small-2503@001',
+    ];
+
+    function fetchModels() {
       const statusEl = document.getElementById('status');
       const selectEl = document.getElementById('model-select');
 
-      statusEl.textContent = 'Connecting...';
-      statusEl.className = 'status-badge loading';
+      selectEl.innerHTML = '';
+      AVAILABLE_MODELS.forEach(function(id) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = id;
+        selectEl.appendChild(opt);
+      });
 
-      try {
-        const resp = await fetch(state.apiBase + '/v1/models', { headers: buildHeaders() });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
-
-        selectEl.innerHTML = '';
-        const models = data.data || [];
-        if (models.length === 0) throw new Error('No models available');
-
-        models.forEach(function(m) {
-          const opt = document.createElement('option');
-          opt.value = m.id;
-          opt.textContent = m.id;
-          selectEl.appendChild(opt);
-        });
-
-        state.selectedModel = models[0].id;
-        selectEl.disabled = false;
-        document.getElementById('user-input').disabled = false;
-        document.getElementById('send-button').disabled = false;
-        statusEl.textContent = 'Connected';
-        statusEl.className = 'status-badge connected';
-      } catch (err) {
-        selectEl.innerHTML = '<option value="">Failed to load</option>';
-        statusEl.textContent = 'Error';
-        statusEl.className = 'status-badge error';
-        console.error('Failed to fetch models:', err);
-      }
+      state.selectedModel = AVAILABLE_MODELS[0];
+      selectEl.disabled = false;
+      document.getElementById('user-input').disabled = false;
+      document.getElementById('send-button').disabled = false;
+      statusEl.textContent = 'Connected';
+      statusEl.className = 'status-badge connected';
     }
 
     // Lightweight markdown to HTML converter.
@@ -538,6 +531,9 @@
         }
 
         const data = await resp.json();
+        if (!data.choices || !data.choices[0]) {
+          throw new Error('Unexpected response: ' + JSON.stringify(data).substring(0, 600));
+        }
         const assistantContent = data.choices[0].message.content;
 
         state.messages.push({ role: 'assistant', content: assistantContent });

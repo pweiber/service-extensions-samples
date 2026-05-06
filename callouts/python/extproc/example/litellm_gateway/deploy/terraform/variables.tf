@@ -24,12 +24,7 @@ variable "region" {
 }
 
 variable "callout_image" {
-  description = "The container image for the Go ext_proc callout service."
-  type        = string
-}
-
-variable "litellm_image" {
-  description = "The container image for the LiteLLM proxy service (with litellm_config.yaml baked in)."
+  description = "The container image for the Python ext_proc callout service."
   type        = string
 }
 
@@ -39,20 +34,20 @@ variable "upstream_app_image" {
   default     = "gcr.io/google-samples/hello-app:1.0"
 }
 
-variable "litellm_service_account" {
-  description = "Email of the service account used by the LiteLLM Cloud Run service. Must have roles/aiplatform.user. If empty, the project's default compute SA is used."
+variable "callout_service_account" {
+  description = "Email of the service account used by the callout Cloud Run service. Must have roles/aiplatform.user to fetch Vertex AI Bearer tokens via the metadata server. If empty, the project's default compute SA is used."
   type        = string
   default     = ""
 }
 
 variable "sec_keywords" {
-  description = "Comma-separated prompt keywords. When any message contains one, the callout adds an x-sec-keyword header to the forwarded request."
+  description = "Comma-separated prompt keywords. When any message contains one, the callout adds an x-sec-keyword header to the forwarded request and response."
   type        = string
   default     = ""
 }
 
 variable "allowed_models" {
-  description = "Comma-separated model allowlist. Empty means all models are allowed. Disallowed models get rejected with HTTP 403."
+  description = "Comma-separated model allowlist. Empty means all models are allowed. Disallowed models are rejected with HTTP 403."
   type        = string
   default     = ""
 }

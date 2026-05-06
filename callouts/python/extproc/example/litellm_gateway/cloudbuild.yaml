@@ -1,0 +1,21 @@
+# Builds and pushes the Python ext_proc callout image to Artifact Registry.
+#
+# Submit from callouts/python/:
+#   gcloud builds submit \
+#     --config=extproc/example/litellm_gateway/cloudbuild.yaml \
+#     --project=YOUR_PROJECT_ID
+#
+# The build context is callouts/python/ (the package root).
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/litellm-gateway/callout:latest'
+      - '-f'
+      - 'extproc/example/litellm_gateway/Dockerfile'
+      - '.'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/litellm-gateway/callout:latest'

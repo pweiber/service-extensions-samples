@@ -52,56 +52,25 @@ resource "google_project_service" "apis" {
 }
 
 # ===================================================================
-# NETWORKING — VPC + SUBNETS FOR REGIONAL EXTERNAL LOAD BALANCER
-# ===================================================================
-
-resource "google_compute_network" "vpc" {
-  name                    = "litellm-gateway-vpc"
-  auto_create_subnetworks = false
-  depends_on              = [google_project_service.apis]
-}
-
-resource "google_compute_subnetwork" "main" {
-  name          = "litellm-gateway-main-subnet"
-  ip_cidr_range = "10.0.1.0/24"
-  region        = var.region
-  network       = google_compute_network.vpc.id
-}
-
-# Required for regional external managed load balancers.
-resource "google_compute_subnetwork" "proxy_only" {
-  name          = "litellm-gateway-proxy-subnet"
-  ip_cidr_range = "10.0.2.0/24"
-  region        = var.region
-  network       = google_compute_network.vpc.id
-  purpose       = "REGIONAL_MANAGED_PROXY"
-  role          = "ACTIVE"
-}
-
-# ===================================================================
-# SERVICE ACCOUNT — LITELLM (calls Vertex AI via ADC)
+# SERVICE ACCOUNT — CALLOUT (fetches Vertex AI Bearer tokens via ADC)
 # ===================================================================
 #
-# By default the LiteLLM Cloud Run service uses the project's default compute
-# service account (PROJECT_NUMBER-compute@developer.gserviceaccount.com) which
-# Google Cloud creates automatically for every project and already has the
-# roles/editor binding (sufficient for Vertex AI calls).
+# The Python callout calls the GCE metadata server to mint short-lived
+# OAuth tokens, then injects them as `Authorization: Bearer …` headers.
+# The SA therefore needs roles/aiplatform.user.
 #
-# For production, we recommend creating a dedicated service account scoped to
-# just roles/aiplatform.user. To do that:
-#   1. Create a service account and grant it roles/aiplatform.user
-#   2. Set var.litellm_service_account to its email address
+# By default the project's default compute SA is used (has roles/editor,
+# sufficient for Vertex). For tighter scoping set var.callout_service_account.
 
 locals {
-  # Default: compute engine default SA. Overridable via var.litellm_service_account.
-  litellm_service_account = coalesce(
-    var.litellm_service_account,
+  callout_service_account = coalesce(
+    var.callout_service_account,
     "${data.google_project.project.number}-compute@developer.gserviceaccount.com",
   )
 }
 
 # ===================================================================
-# CLOUD RUN — CALLOUT
+# CLOUD RUN — CALLOUT (Python ext_proc service)
 # ===================================================================
 
 resource "google_cloud_run_v2_service" "callout" {
@@ -111,6 +80,8 @@ resource "google_cloud_run_v2_service" "callout" {
   ingress             = "INGRESS_TRAFFIC_ALL"
 
   template {
+    service_account = local.callout_service_account
+
     containers {
       name  = "callout"
       image = var.callout_image
@@ -119,8 +90,12 @@ resource "google_cloud_run_v2_service" "callout" {
         container_port = 8080
       }
       env {
-        name  = "EXAMPLE_TYPE"
-        value = "litellm_gateway"
+        name  = "GCP_PROJECT_ID"
+        value = var.project_id
+      }
+      env {
+        name  = "GCP_REGION"
+        value = var.region
       }
       env {
         name  = "SEC_KEYWORDS"
@@ -179,103 +154,13 @@ resource "google_compute_region_network_endpoint_group" "callout_neg" {
   }
 }
 
-resource "google_compute_region_backend_service" "callout_backend" {
+# Global backend service — serverless NEGs must not specify balancing_mode.
+resource "google_compute_backend_service" "callout_backend" {
   name                  = "litellm-gateway-callout-be"
-  region                = var.region
   load_balancing_scheme = "EXTERNAL_MANAGED"
   protocol              = "HTTP2"
   backend {
-    group           = google_compute_region_network_endpoint_group.callout_neg.id
-    balancing_mode  = "UTILIZATION"
-    capacity_scaler = 1.0
-  }
-}
-
-# ===================================================================
-# CLOUD RUN — LITELLM
-# ===================================================================
-
-resource "google_cloud_run_v2_service" "litellm" {
-  name                = "litellm-gateway-litellm"
-  location            = var.region
-  deletion_protection = false
-  ingress             = "INGRESS_TRAFFIC_ALL"
-
-  template {
-    service_account = local.litellm_service_account
-
-    containers {
-      name  = "litellm"
-      image = var.litellm_image
-      ports {
-        container_port = 4000
-      }
-      env {
-        name  = "GCP_PROJECT_ID"
-        value = var.project_id
-      }
-      env {
-        name  = "GCP_REGION"
-        value = var.region
-      }
-      resources {
-        limits = {
-          cpu    = "1"
-          memory = "2Gi"
-        }
-      }
-      startup_probe {
-        http_get {
-          path = "/health/liveliness"
-          port = 4000
-        }
-        initial_delay_seconds = 15
-        period_seconds        = 10
-        failure_threshold     = 6
-      }
-      liveness_probe {
-        http_get {
-          path = "/health/liveliness"
-          port = 4000
-        }
-        period_seconds = 30
-      }
-    }
-
-    scaling {
-      min_instance_count = 1
-      max_instance_count = 10
-    }
-  }
-
-  depends_on = [google_project_service.apis]
-}
-
-resource "google_cloud_run_v2_service_iam_member" "litellm_public_invoker" {
-  name     = google_cloud_run_v2_service.litellm.name
-  location = google_cloud_run_v2_service.litellm.location
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
-
-resource "google_compute_region_network_endpoint_group" "litellm_neg" {
-  name                  = "litellm-gateway-litellm-neg"
-  region                = var.region
-  network_endpoint_type = "SERVERLESS"
-  cloud_run {
-    service = google_cloud_run_v2_service.litellm.name
-  }
-}
-
-resource "google_compute_region_backend_service" "litellm_backend" {
-  name                  = "litellm-gateway-litellm-be"
-  region                = var.region
-  load_balancing_scheme = "EXTERNAL_MANAGED"
-  protocol              = "HTTPS"
-  backend {
-    group           = google_compute_region_network_endpoint_group.litellm_neg.id
-    balancing_mode  = "UTILIZATION"
-    capacity_scaler = 1.0
+    group = google_compute_region_network_endpoint_group.callout_neg.id
   }
 }
 
@@ -320,26 +205,59 @@ resource "google_compute_region_network_endpoint_group" "upstream_neg" {
   }
 }
 
-resource "google_compute_region_backend_service" "upstream_backend" {
+resource "google_compute_backend_service" "upstream_backend" {
   name                  = "litellm-gateway-upstream-be"
-  region                = var.region
   load_balancing_scheme = "EXTERNAL_MANAGED"
   protocol              = "HTTPS"
   backend {
-    group           = google_compute_region_network_endpoint_group.upstream_neg.id
-    balancing_mode  = "UTILIZATION"
-    capacity_scaler = 1.0
+    group = google_compute_region_network_endpoint_group.upstream_neg.id
   }
 }
 
 # ===================================================================
-# LOAD BALANCER — REGIONAL EXTERNAL HTTPS
+# VERTEX AI BACKEND — GLOBAL INTERNET NEG (HTTPS to aiplatform.googleapis.com)
+# ===================================================================
+#
+# Global external Application LB automatically rewrites the Host header to
+# the FQDN of the Internet NEG endpoint — unlike regional LBs which pass
+# the client's Host through unchanged.  This means the callout only needs
+# to rewrite :path and inject Authorization; no :authority override is needed.
+
+resource "google_compute_global_network_endpoint_group" "vertex_neg" {
+  name                  = "litellm-gateway-vertex-neg"
+  network_endpoint_type = "INTERNET_FQDN_PORT"
+  default_port          = 443
+  depends_on            = [google_project_service.apis]
+}
+
+resource "google_compute_global_network_endpoint" "vertex_endpoint" {
+  global_network_endpoint_group = google_compute_global_network_endpoint_group.vertex_neg.name
+  fqdn                          = "${var.region}-aiplatform.googleapis.com"
+  port                          = 443
+}
+
+resource "google_compute_backend_service" "vertex_backend" {
+  name                  = "litellm-gateway-vertex-be"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  protocol              = "HTTPS"
+  timeout_sec           = 180
+
+  backend {
+    group           = google_compute_global_network_endpoint_group.vertex_neg.id
+    balancing_mode  = "UTILIZATION"
+    capacity_scaler = 1.0
+  }
+
+  depends_on = [google_compute_global_network_endpoint.vertex_endpoint]
+}
+
+
+# ===================================================================
+# LOAD BALANCER — GLOBAL EXTERNAL HTTPS APPLICATION LB
 # ===================================================================
 
-resource "google_compute_address" "lb_ip" {
-  name         = "litellm-gateway-lb-ip"
-  region       = var.region
-  address_type = "EXTERNAL"
+resource "google_compute_global_address" "lb_ip" {
+  name = "litellm-gateway-lb-ip"
 }
 
 resource "tls_private_key" "lb_key" {
@@ -355,19 +273,16 @@ resource "tls_self_signed_cert" "lb_cert" {
   allowed_uses          = ["server_auth"]
 }
 
-resource "google_compute_region_ssl_certificate" "lb_cert" {
+resource "google_compute_ssl_certificate" "lb_cert" {
   name        = "litellm-gateway-cert"
-  region      = var.region
   private_key = tls_private_key.lb_key.private_key_pem
   certificate = tls_self_signed_cert.lb_cert.cert_pem
 }
 
-# URL map routes LLM paths to the LiteLLM backend; everything else goes to
-# the upstream app.
-resource "google_compute_region_url_map" "url_map" {
+# URL map: LLM paths → Vertex backend; everything else → upstream app.
+resource "google_compute_url_map" "url_map" {
   name            = "litellm-gateway-url-map"
-  region          = var.region
-  default_service = google_compute_region_backend_service.upstream_backend.id
+  default_service = google_compute_backend_service.upstream_backend.id
 
   host_rule {
     hosts        = ["*"]
@@ -376,71 +291,61 @@ resource "google_compute_region_url_map" "url_map" {
 
   path_matcher {
     name            = "llm"
-    default_service = google_compute_region_backend_service.upstream_backend.id
+    default_service = google_compute_backend_service.upstream_backend.id
+
+    # route_action with url_rewrite.host_rewrite is required for EXTERNAL_MANAGED
+    # global LBs — unlike classic global LBs, they do not auto-rewrite the Host
+    # header to the Internet NEG FQDN.  The rewrite is applied after any
+    # clear_route_cache re-evaluation triggered by the Traffic Extension.
 
     route_rules {
       priority = 1
       match_rules {
         prefix_match = "/v1/"
       }
-      service = google_compute_region_backend_service.litellm_backend.id
-    }
-
-    route_rules {
-      priority = 2
-      match_rules {
-        prefix_match = "/chat/"
+      route_action {
+        weighted_backend_services {
+          backend_service = google_compute_backend_service.vertex_backend.id
+          weight          = 100
+        }
+        url_rewrite {
+          host_rewrite = "${var.region}-aiplatform.googleapis.com"
+        }
       }
-      service = google_compute_region_backend_service.litellm_backend.id
-    }
-
-    route_rules {
-      priority = 3
-      match_rules {
-        prefix_match = "/completions"
-      }
-      service = google_compute_region_backend_service.litellm_backend.id
-    }
-
-    route_rules {
-      priority = 4
-      match_rules {
-        prefix_match = "/embeddings"
-      }
-      service = google_compute_region_backend_service.litellm_backend.id
     }
   }
 }
 
-resource "google_compute_region_target_https_proxy" "https_proxy" {
+resource "google_compute_target_https_proxy" "https_proxy" {
   name             = "litellm-gateway-https-proxy"
-  region           = var.region
-  url_map          = google_compute_region_url_map.url_map.id
-  ssl_certificates = [google_compute_region_ssl_certificate.lb_cert.id]
+  url_map          = google_compute_url_map.url_map.id
+  ssl_certificates = [google_compute_ssl_certificate.lb_cert.id]
 }
 
-resource "google_compute_forwarding_rule" "forwarding_rule" {
+resource "google_compute_global_forwarding_rule" "forwarding_rule" {
   name                  = "litellm-gateway-fwd-rule"
-  region                = var.region
   port_range            = "443"
-  target                = google_compute_region_target_https_proxy.https_proxy.id
-  ip_address            = google_compute_address.lb_ip.id
+  target                = google_compute_target_https_proxy.https_proxy.id
+  ip_address            = google_compute_global_address.lb_ip.id
   load_balancing_scheme = "EXTERNAL_MANAGED"
-  network               = google_compute_network.vpc.id
-
-  depends_on = [google_compute_subnetwork.proxy_only]
 }
 
 # ===================================================================
-# SERVICE EXTENSIONS — TRAFFIC EXTENSION (calls the callout for LLM paths)
+# SERVICE EXTENSIONS — TRAFFIC EXTENSION (intercepts LLM paths)
 # ===================================================================
+#
+# The Python callout handles all four phases:
+#   REQUEST_HEADERS  — marks the stream as LLM, sets x-litellm-routed
+#   REQUEST_BODY     — transforms OpenAI → Vertex, rewrites :path/Authorization
+#   RESPONSE_HEADERS — removes content-length (Vertex's value is stale post-transform)
+#   RESPONSE_BODY    — transforms Vertex → OpenAI (buffered or SSE streaming)
 
 resource "google_network_services_lb_traffic_extension" "callout" {
   name                  = "litellm-gateway-traffic-ext"
-  location              = var.region
+  location              = "global"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   forwarding_rules = [
-    google_compute_forwarding_rule.forwarding_rule.self_link
+    google_compute_global_forwarding_rule.forwarding_rule.self_link
   ]
   extension_chains {
     name = "litellm-gateway-chain"
@@ -449,9 +354,9 @@ resource "google_network_services_lb_traffic_extension" "callout" {
     }
     extensions {
       name             = "litellm-gateway-callout"
-      service          = google_compute_region_backend_service.callout_backend.self_link
+      service          = google_compute_backend_service.callout_backend.self_link
       authority        = "litellm-gateway.example.com"
-      supported_events = ["REQUEST_HEADERS", "REQUEST_BODY", "RESPONSE_HEADERS"]
+      supported_events = ["REQUEST_HEADERS", "REQUEST_BODY", "RESPONSE_HEADERS", "RESPONSE_BODY"]
       timeout          = "10s"
     }
   }
@@ -464,17 +369,12 @@ resource "google_network_services_lb_traffic_extension" "callout" {
 
 output "load_balancer_ip" {
   description = "The external IP address of the load balancer."
-  value       = google_compute_address.lb_ip.address
+  value       = google_compute_global_address.lb_ip.address
 }
 
 output "callout_service_url" {
-  description = "The URL of the callout (policy enforcer) Cloud Run service."
+  description = "The URL of the Python ext_proc callout Cloud Run service."
   value       = google_cloud_run_v2_service.callout.uri
-}
-
-output "litellm_service_url" {
-  description = "The URL of the LiteLLM proxy Cloud Run service."
-  value       = google_cloud_run_v2_service.litellm.uri
 }
 
 output "upstream_service_url" {
@@ -482,11 +382,16 @@ output "upstream_service_url" {
   value       = google_cloud_run_v2_service.upstream_app.uri
 }
 
+output "vertex_endpoint" {
+  description = "The Vertex AI FQDN this deployment forwards LLM requests to."
+  value       = "${var.region}-aiplatform.googleapis.com"
+}
+
 output "curl_test_command" {
   description = "Example curl command to test the LiteLLM gateway through the load balancer."
   value       = <<-EOT
-    curl -sk -X POST https://${google_compute_address.lb_ip.address}/v1/chat/completions \
+    curl -sk -X POST https://${google_compute_global_address.lb_ip.address}/v1/chat/completions \
       -H "Content-Type: application/json" \
-      -d '{"model": "vertex/gemini-2.5-flash", "messages": [{"role": "user", "content": "Hello"}]}'
+      -d '{"model": "vertex_ai/gemini-2.5-flash", "messages": [{"role": "user", "content": "Hello"}]}'
   EOT
 }
