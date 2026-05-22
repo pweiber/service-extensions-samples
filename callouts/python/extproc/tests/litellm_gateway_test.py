@@ -78,7 +78,15 @@ def svc():
         "GCP_REGION": "us-central1",
         "ANTHROPIC_API_KEY": "sk-ant-test",
     }):
-        yield LiteLLMGatewayCallout(disable_tls=True)
+        callout = LiteLLMGatewayCallout(
+            disable_tls=True,
+            plaintext_address=("0.0.0.0", 0),
+        )
+        try:
+            yield callout
+        finally:
+            if callout._callout_server is not None:
+                callout._callout_server.stop()
 
 
 # A canned (URL, headers, body, provider, model) tuple matching what
