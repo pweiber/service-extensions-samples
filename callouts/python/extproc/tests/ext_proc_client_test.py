@@ -20,7 +20,7 @@ from envoy.service.ext_proc.v3.external_processor_pb2 import (
 from google.protobuf.json_format import MessageToJson
 import pytest
 
-from extproc.example.basic_callout_server import (
+from extproc.example.basic.service_callout_example import (
   BasicCalloutServer as CalloutServerTest,
 )
 
@@ -115,7 +115,7 @@ def test_secure_request(server: CalloutServerTest) -> None:
   responses = list(
     make_json_request(
       ['{"requestBody": {}}', '{"responseBody": {}}'],
-      server.address,
+      server.secure_address,
       key='./extproc/ssl_creds/chain.pem',
     )
   )

@@ -21,6 +21,7 @@ from envoy.service.ext_proc.v3 import external_processor_pb2 as service_pb2
 from envoy.service.ext_proc.v3.external_processor_pb2 import HeadersResponse, HttpHeaders, BodyResponse
 from extproc.service import callout_server
 from extproc.service import callout_tools
+from extproc.service import command_line_tools
 import threading
 import json
 
@@ -68,7 +69,8 @@ class ObservabilityServerExample(callout_server.CalloutServer):
     """Custom processor on the request body."""
     logging.info('on_request_body %s', body)
     with lock:
-      counters['request_body_count'] += 1
+      if (not body.end_of_stream or body.body):
+        counters['request_body_count'] += 1
     return BodyResponse()
 
   def on_response_headers(self, headers: HttpHeaders,
@@ -83,7 +85,8 @@ class ObservabilityServerExample(callout_server.CalloutServer):
     """Custom processor on the response body."""
     logging.info('on_response_body %s', body)
     with lock:
-      counters['response_body_count'] += 1
+      if (not body.end_of_stream or body.body):
+        counters['response_body_count'] += 1
     return BodyResponse()
 
 
@@ -102,11 +105,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
   # Setup command line args.
-  args = callout_tools.add_command_line_args().parse_args()
+  args = command_line_tools.add_command_line_args().parse_args()
   # Set the debug level.
   logging.basicConfig(level=logging.DEBUG)
   logging.info('Starting observability test server.')
   # Run the gRPC service.
   params = vars(args)
   # We are using the default plaintext address to provide observability data.
-  ObservabilityServerExample(disable_plaintext=True, **params).run()
+  params['disable_plaintext'] = True
+  ObservabilityServerExample(**params).run()

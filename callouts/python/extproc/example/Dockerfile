@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC.
+# Copyright 2025 Google LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,18 @@
 FROM bufbuild/buf as BUF
 RUN apk add git
 COPY ./buf.gen.yaml ./buf.gen.yaml
-RUN buf -v generate https://github.com/envoyproxy/envoy.git#subdir=api --path envoy/service/ext_proc/v3/external_processor.proto --include-imports
+# L7 proto path: envoy/service/ext_proc/v3/external_processor.proto
+# L4 proto path: envoy/service/network_ext_proc/v3/network_external_processor.proto
+ARG proto_path="envoy/service/ext_proc/v3/external_processor.proto"
+RUN buf -v generate https://github.com/envoyproxy/envoy.git#subdir=api --path $proto_path --include-imports
 
-# Build the callout service. 
-FROM marketplace.gcr.io/google/debian12 as service-callout-common-python
+# Build the callout service.
+FROM launcher.gcr.io/google/debian12 as service-callout-common-python
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get autoremove -y
 
 # Install pip for package management.
-RUN apt-get update && apt-get install -y python3-pip --no-install-recommends --no-install-suggests
+RUN apt-get install -y python3-pip --no-install-recommends --no-install-suggests
 
 # Use pip to install requirements.
 COPY ./requirements.txt .
@@ -48,7 +53,7 @@ ARG run_module
 COPY $copy_path ./
 
 # Install any example-specific packages if included. 
-RUN [ -f requirements-example.txt ] && pip install -r additional-requirements.txt --break-system-packages --root-user-action=ignore || echo "No example-specific requirements found."
+RUN [ -f additional-requirements.txt ] && pip install -r additional-requirements.txt --break-system-packages --root-user-action=ignore || echo "No example-specific requirements found."
 
 # Set up communication ports.
 EXPOSE 443
