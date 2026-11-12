@@ -56,7 +56,7 @@ rust_library(
         "@cu__num-integer-0.1.47//:num_integer",
         "@cu__num-iter-0.1.46//:num_iter",
         "@cu__num-traits-0.2.19//:num_traits",
-        "@cu__rand-0.8.8//:rand",
+        "@cu__rand-0.8.5//:rand",
         "@cu__smallvec-1.13.2//:smallvec",
         "@cu__zeroize-1.9.1//:zeroize",
     ],

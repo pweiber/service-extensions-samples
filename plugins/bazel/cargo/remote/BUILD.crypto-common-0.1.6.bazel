@@ -43,9 +43,9 @@ rust_library(
         "noclippy",
         "norustfmt",
     ],
-    version = "0.1.7",
+    version = "0.1.6",
     deps = [
         "@cu__generic-array-0.14.7//:generic_array",
-        "@cu__typenum-1.20.1//:typenum",
+        "@cu__typenum-1.17.0//:typenum",
     ],
 )

@@ -53,7 +53,7 @@ rust_library(
         "@cu__rsa-0.9.10//:rsa",
         "@cu__serde-1.0.228//:serde",
         "@cu__serde_json-1.0.145//:serde_json",
-        "@cu__sha2-0.10.9//:sha2",
+        "@cu__sha2-0.10.8//:sha2",
         "@cu__smallvec-1.13.2//:smallvec",
         "@cu__subtle-2.6.1//:subtle",
         "@cu__zeroize-1.9.1//:zeroize",
