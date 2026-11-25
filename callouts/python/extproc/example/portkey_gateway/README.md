@@ -379,6 +379,7 @@ portkey_gateway/
 | `GCP_REGION` | `us-central1` | Vertex AI region; also determines the Internet NEG FQDN (`{region}-aiplatform.googleapis.com`). |
 | `PORTKEY_BASE_URL` | `http://127.0.0.1:8787` | URL of the Portkey sidecar. Change only if you run Portkey on a different port or host. |
 | `CAPTURE_PORT` | `9999` | Port the callout's capture server listens on. Portkey is pointed at it via `x-portkey-custom-host`. |
+| `MAX_RESPONSE_BODY_BYTES` | `10485760` (10 MiB) | Maximum provider response body size the callout buffers for translation. Larger responses are rejected with HTTP 502. |
 | `ANTHROPIC_API_KEY` | (none) | API key for Anthropic requests. Mounted from Secret Manager. |
 | `GROQ_API_KEY` | (none) | API key for Groq requests. Mounted from Secret Manager. |
 | `OPENROUTER_API_KEY` | (none) | API key for OpenRouter requests. Mounted from Secret Manager. |

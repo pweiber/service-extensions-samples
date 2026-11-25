@@ -21,9 +21,11 @@ are mocked via ``respx``.
 """
 
 import asyncio
+import concurrent.futures
 import gzip
 import json
 import os
+import threading
 import time
 from unittest.mock import MagicMock, patch
 
@@ -346,6 +348,33 @@ def test_non_llm_path_is_passthrough(svc):
     assert resp is None
     state = _state(ctx)
     assert state.is_llm is False
+
+
+def test_llm_path_with_query_string_is_routed(svc):
+    ctx = _Ctx()
+    resp = svc.on_request_headers(
+        _http_headers({":path": "/v1/chat/completions?api-version=1",
+                       ":method": "POST"}),
+        ctx,
+    )
+    assert resp is not None
+    assert _state(ctx).is_llm is True
+
+
+def test_run_async_timeout_cancels_coroutine(svc):
+    cancelled = threading.Event()
+
+    async def hang():
+        try:
+            await asyncio.sleep(3600)
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+
+    with pytest.raises(concurrent.futures.TimeoutError):
+        svc._run_async(hang(), timeout=0.05)
+    # The coroutine must not keep running on the loop after the wait gives up.
+    assert cancelled.wait(timeout=5)
 
 
 def test_llm_path_marks_state_and_stamps_routed_header(svc):
@@ -744,6 +773,31 @@ def test_on_response_body_buffers_mid_stream_chunks(svc):
     assert isinstance(resp, service_pb2.BodyResponse)
     assert resp.response.body_mutation.clear_body is True
     assert state.response_chunks == [b"partial"]
+
+
+def test_on_response_body_over_limit_returns_502_and_releases_call(
+        svc, monkeypatch):
+    monkeypatch.setattr(svc, "_max_response_body_bytes", 8)
+    ctx = _Ctx()
+    state = _state(ctx)
+    state.is_llm = True
+    state.provider = "anthropic"
+    state.correlation = "over-limit"
+    svc._run_async(svc._capture.arm(state.correlation))
+    call = concurrent.futures.Future()
+    state.portkey_call = call
+
+    resp = svc.on_response_body(
+        service_pb2.HttpBody(body=b"12345", end_of_stream=False), ctx)
+    assert resp.response.body_mutation.clear_body is True
+
+    resp = svc.on_response_body(
+        service_pb2.HttpBody(body=b"67890", end_of_stream=False), ctx)
+    assert resp.status.code == StatusCode.BadGateway
+    # Buffered bytes are dropped and the parked Portkey call is released.
+    assert state.response_chunks == []
+    assert call.cancelled()
+    assert state.correlation not in svc._capture._pending
 
 
 def test_on_response_body_missing_provider_returns_500(svc):

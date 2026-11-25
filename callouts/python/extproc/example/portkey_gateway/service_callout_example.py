@@ -44,7 +44,9 @@ Body handling: the callout requests ``BUFFERED`` body delivery via
 Extension data plane keeps response bodies STREAMED, so providers that flush
 in several pieces (for example OpenRouter's keep-alive padding) arrive as
 multiple chunks. ``on_response_body`` therefore buffers chunks (clearing each
-from the egress) and translates the reassembled body on the final chunk.
+from the egress) and translates the reassembled body on the final chunk. The
+buffered size is capped by ``MAX_RESPONSE_BODY_BYTES`` (default 10 MiB);
+larger responses are rejected with HTTP 502.
 Client streaming (``stream: true``) is explicitly rejected with HTTP 501.
 """
 
@@ -56,8 +58,10 @@ import json
 import logging
 import os
 import threading
+import urllib.parse
 import uuid
 from concurrent.futures import Future
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
@@ -243,6 +247,11 @@ _CAPTURE_TIMEOUT = 30.0
 # point, so this is also a localhost operation.
 _TRANSLATE_TIMEOUT = 30.0
 
+# Default cap on the provider response body the callout buffers before
+# translating it (override with MAX_RESPONSE_BODY_BYTES). Responses larger
+# than this are rejected with 502 rather than held in memory.
+_DEFAULT_MAX_RESPONSE_BODY_BYTES = 10 * 1024 * 1024
+
 
 @dataclass
 class _StreamState:
@@ -250,8 +259,10 @@ class _StreamState:
     provider: str | None = None
     correlation: str = ""
     request_body: dict[str, Any] = field(default_factory=dict)
-    # Response-body chunks accumulated across STREAMED ext_proc messages.
+    # Response-body chunks accumulated across STREAMED ext_proc messages, and
+    # their total size, checked against the configured buffering limit.
     response_chunks: list[bytes] = field(default_factory=list)
+    response_size: int = 0
     # The in-flight Portkey call, started in the request phase and resolved in
     # the response phase once the parked connection is answered.
     portkey_call: Future | None = None
@@ -276,6 +287,8 @@ class PortkeyGatewayCallout(callout_server.CalloutServer):
             "PORTKEY_BASE_URL", "http://127.0.0.1:8787")
 
         self._capture_port = int(os.getenv("CAPTURE_PORT", "9999"))
+        self._max_response_body_bytes = int(os.getenv(
+            "MAX_RESPONSE_BODY_BYTES", str(_DEFAULT_MAX_RESPONSE_BODY_BYTES)))
 
         # The capture server and Portkey client are spun up lazily on a worker
         # thread because the gRPC server runs on its own thread pool and we
@@ -319,8 +332,13 @@ class PortkeyGatewayCallout(callout_server.CalloutServer):
         future = asyncio.run_coroutine_threadsafe(
             coro, self._loop)  # type: ignore[arg-type]
         # Timeout so a hung sidecar surfaces as concurrent.futures.TimeoutError
-        # rather than hanging the gRPC thread indefinitely.
-        return future.result(timeout=timeout)
+        # rather than hanging the gRPC thread indefinitely. Timing out the
+        # wait does not stop the coroutine on the loop, so cancel it as well.
+        try:
+            return future.result(timeout=timeout)
+        except FutureTimeoutError:
+            future.cancel()
+            raise
 
     def _abandon_portkey_call(self, state: _StreamState) -> None:
         """Release capture state and drop the in-flight Portkey call.
@@ -351,7 +369,8 @@ class PortkeyGatewayCallout(callout_server.CalloutServer):
             if h.key == ":path":
                 path = h.raw_value.decode("utf-8")
                 break
-        if path not in LLM_ENDPOINTS:
+        # :path carries the query string; match on the path component only.
+        if urllib.parse.urlsplit(path).path not in LLM_ENDPOINTS:
             return None
         state = _state(context)
         state.is_llm = True
@@ -564,12 +583,24 @@ class PortkeyGatewayCallout(callout_server.CalloutServer):
         state = _state(context)
         if not state.is_llm:
             return None
+        chunk = body.body or b""
+        state.response_size += len(chunk)
+        if state.response_size > self._max_response_body_bytes:
+            # Earlier chunks were already cleared from the egress, so the body
+            # cannot pass through untranslated either: fail the response.
+            logging.error(
+                "provider response exceeds %d bytes; rejecting (corr=%s)",
+                self._max_response_body_bytes, state.correlation)
+            state.response_chunks.clear()
+            self._abandon_portkey_call(state)
+            return callout_tools.header_immediate_response(
+                StatusCode.BadGateway)
         if not body.end_of_stream:
             # The LB delivers response bodies STREAMED: providers that flush
             # in several pieces (for example OpenRouter's keep-alive padding)
             # arrive as multiple chunks. Buffer each chunk and clear it from
             # the egress; the full body is translated on the final chunk.
-            state.response_chunks.append(body.body or b"")
+            state.response_chunks.append(chunk)
             resp = service_pb2.BodyResponse()
             resp.response.body_mutation.clear_body = True
             return resp
@@ -582,7 +613,7 @@ class PortkeyGatewayCallout(callout_server.CalloutServer):
             return callout_tools.header_immediate_response(
                 StatusCode.InternalServerError)
 
-        provider_response = b"".join(state.response_chunks) + (body.body or b"")
+        provider_response = b"".join(state.response_chunks) + chunk
         # Some providers (notably Vertex AI) gzip responses even when we ask
         # for ``identity`` via Accept-Encoding. Detect by magic bytes and
         # decompress so Portkey's response transformer sees plain JSON.
